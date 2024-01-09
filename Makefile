@@ -1,6 +1,6 @@
 .PHONY: build
 build:
-	go build -v ./cmd/server
+	go build -o ./out/server -v ./cmd/server 
 
 .PHONY: test
 test:
