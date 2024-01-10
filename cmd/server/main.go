@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 
 	"github.com/BurntSushi/toml"
@@ -17,6 +18,7 @@ func init() {
 }
 
 func main() {
+	fmt.Println("Hello from server2!")
 	flag.Parse()
 
 	config := httpserver.NewConfig()
