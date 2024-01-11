@@ -3,14 +3,24 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
+	"os"
+	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/sirupsen/logrus"
+
+	// "github.com/digitalocean/go-libvirt/socket/dialers"
 	"github.com/vmultihost/server/internal/httpserver"
+	"github.com/vmultihost/server/internal/hypervisor"
 )
 
 var (
 	configPath string
+)
+
+const (
+	socketName    = "/var/run/libvirt/libvirt-sock"
+	socketTimeout = 15 * time.Second
 )
 
 func init() {
@@ -18,7 +28,22 @@ func init() {
 }
 
 func main() {
-	fmt.Println("Hello from server2!")
+	fmt.Println("Hello from server!")
+
+	log := logrus.New()
+	hypervisorConfig := hypervisor.NewConfig(socketName, socketTimeout)
+	hypervisor := hypervisor.New(*hypervisorConfig, log)
+
+	if err := hypervisor.Connect(); err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
+
+	if err := hypervisor.Disconnect(); err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
+
 	flag.Parse()
 
 	config := httpserver.NewConfig()
