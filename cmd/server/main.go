@@ -9,7 +9,6 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/sirupsen/logrus"
 
-	// "github.com/digitalocean/go-libvirt/socket/dialers"
 	"github.com/vmultihost/server/internal/httpserver"
 	"github.com/vmultihost/server/internal/hypervisor"
 )
@@ -21,6 +20,8 @@ var (
 const (
 	socketName    = "/var/run/libvirt/libvirt-sock"
 	socketTimeout = 15 * time.Second
+	imgSource     = "/home/kostuyn/Downloads/ubuntu-22.04-server-cloudimg-amd64.img"
+	volumeSizeKB  = 10 * 1024 * 1024 * 1024
 )
 
 func init() {
@@ -35,6 +36,11 @@ func main() {
 	hypervisor := hypervisor.New(*hypervisorConfig, log)
 
 	if err := hypervisor.Connect(); err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
+
+	if err := hypervisor.CopyImg(imgSource, volumeSizeKB); err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}
