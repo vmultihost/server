@@ -11,6 +11,7 @@ import (
 
 	"github.com/vmultihost/server/internal/httpserver"
 	"github.com/vmultihost/server/internal/hypervisor"
+	"github.com/vmultihost/server/internal/vmachine"
 )
 
 var (
@@ -32,23 +33,8 @@ func main() {
 	fmt.Println("Hello from server!")
 
 	log := logrus.New()
-	hypervisorConfig := hypervisor.NewConfig(socketName, socketTimeout)
-	hypervisor := hypervisor.New(*hypervisorConfig, log)
-
-	if err := hypervisor.Connect(); err != nil {
-		log.Error(err)
-		os.Exit(1)
-	}
-
-	if err := hypervisor.CopyImg(imgSource, volumeSizeKB); err != nil {
-		log.Error(err)
-		os.Exit(1)
-	}
-
-	if err := hypervisor.Disconnect(); err != nil {
-		log.Error(err)
-		os.Exit(1)
-	}
+	// vmTest(log)
+	yamlTest(log)
 
 	flag.Parse()
 
@@ -75,6 +61,51 @@ func main() {
 	// 	fmt.Printf("Error: %v", err)
 	// }
 	// fmt.Printf("%s\n", string(xmlText))
+}
+
+func yamlTest(log *logrus.Logger) {
+	cloudInit := vmachine.NewCloudInit(
+		"server1",
+		"vmuser",
+		"p@ssword",
+		[]string{"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDZ2uffyx6IblR6dbmdtFdrqdUmH410HW7TsMSnVzsgi9wAjGheG0mYCw+dQHQzmmO+ZIDoIQuF4TE4d1PUdHzErgSkF6PNf/1Hq5+ycDqbg9qWvfsnpfkrZ8ZXkac1cEwvUwP8+aknpUMvdd1Tb1KJGvGbNFgjRWWdmB7QeobweY+6/SoV/c9n0lWRLjzlr/xXwRNgq924DrKVQPXQnoD2UFX/K8QTDaROJ7kh4x/hooPrsp9scfazwMQ+g9FS9isDXnR7HMiuJ2R2LFy4AS3E8Nh4g+3ywYcFMhL2W6ZSVWpTpKHh2x8ac+ZXxl6KTD2HdkPoHoc6Tkr4o4kexpO/ k.altuhov@MacBook-Pro-admin-6.local"},
+		log,
+	)
+
+	metaDataStr, err := cloudInit.GetMetaDataYaml()
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
+
+	userDataStr, err := cloudInit.GetUserDataYaml()
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
+
+	log.Info(metaDataStr)
+	log.Info(userDataStr)
+}
+
+func vmTest(log *logrus.Logger) {
+	hypervisorConfig := hypervisor.NewConfig(socketName, socketTimeout)
+	hypervisor := hypervisor.New(*hypervisorConfig, log)
+
+	if err := hypervisor.Connect(); err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
+
+	if err := hypervisor.CopyImg(imgSource, volumeSizeKB); err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
+
+	if err := hypervisor.Disconnect(); err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
 }
 
 var data = `
