@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type CloudInit struct {
+type cloudInit struct {
 	instanceId  string
 	hostName    string
 	userName    string
@@ -35,8 +35,8 @@ type userDto struct {
 	Shell             string   `yaml:"shell,omitempty"`
 }
 
-func NewCloudInit(hostName, userName, password string, sshAuthKeys []string, log *logrus.Logger) *CloudInit {
-	return &CloudInit{
+func NewCloudInit(hostName, userName, password string, sshAuthKeys []string, log *logrus.Logger) *cloudInit {
+	return &cloudInit{
 		instanceId:  uuid.New().String(),
 		hostName:    hostName,
 		userName:    userName,
@@ -46,7 +46,7 @@ func NewCloudInit(hostName, userName, password string, sshAuthKeys []string, log
 	}
 }
 
-func (c *CloudInit) GetMetaDataYaml() (string, error) {
+func (c *cloudInit) GetMetaDataYaml() (string, error) {
 	metaData := &metaDataDto{
 		InstanceId:    c.instanceId,
 		LocalHostname: c.hostName,
@@ -60,7 +60,7 @@ func (c *CloudInit) GetMetaDataYaml() (string, error) {
 	return string(data[:]), nil
 }
 
-func (c *CloudInit) GetUserDataYaml() (string, error) {
+func (c *cloudInit) GetUserDataYaml() (string, error) {
 	userData := &userDataDto{
 		Users: []userDto{
 			{
