@@ -2,6 +2,9 @@ package vmachine
 
 import (
 	"encoding/xml"
+	"errors"
+	"fmt"
+	"strconv"
 )
 
 type Domain struct {
@@ -77,27 +80,94 @@ type Source struct {
 	File string `xml:"file,attr"`
 }
 
+type SourceNet struct {
+	Network string `xml:"network,attr"`
+}
+
 type Target struct {
 	Dev string `xml:"dev,attr"`
 	Bus string `xml:"bus,attr"`
 }
 
 type Interface struct {
-	Type   string `xml:"type,attr"`
-	Source Source `xml:"source"`
+	Type   string    `xml:"type,attr"`
+	Source SourceNet `xml:"source"`
 }
 
-func createDomainCfg(name, memoryMiB, cpu string) (string, error) {
+func CreateDomainCfg(
+	name string,
+	memoryMiB uint64,
+	cpu uint64,
+	imgPath string,
+	cloudInitUrl string,
+	cloudInitId string,
+	network string,
+) (string, error) {
+	cloudInitPath := fmt.Sprintf("ds=nocloud;s=%s/__dmi.chassis-serial-number__/", cloudInitUrl)
+
 	dto := &Domain{
 		Name: name,
 		Type: "kvm",
 		Memory: Memory{
 			Unit: "MiB",
-			Text: memoryMiB,
+			Text: strconv.FormatUint(memoryMiB, 10),
 		},
 		Vcpu: Vcpu{
 			Placement: "static",
-			Text:      cpu,
+			Text:      strconv.FormatUint(cpu, 10),
+		},
+		Os: Os{
+			Type: "hvm",
+			Smbios: smbios{
+				Mode: "sysinfo",
+			},
+		},
+		Sysinfo: Sysinfo{
+			Type: "smbios",
+			System: System{
+				Entry: Entry{
+					Name: "serial",
+					Text: cloudInitPath,
+				},
+			},
+			Chassis: Chassis{
+				Entry: Entry{
+					Name: "serial",
+					Text: cloudInitId,
+				},
+			},
+		},
+		Devices: Devices{
+			Disk: Disk{
+				Type:   "file",
+				Device: "disk",
+				Driver: Driver{
+					Type:  "qcow2",
+					Name:  "qemu",
+					Cache: "none",
+					Io:    "native",
+				},
+				Source: Source{
+					File: imgPath,
+				},
+				Target: Target{
+					Dev: "vda",
+					Bus: "virtio",
+				},
+			},
+			Interface: Interface{
+				Type: "network",
+				Source: SourceNet{
+					Network: network,
+				},
+			},
 		},
 	}
+
+	xmlText, err := xml.MarshalIndent(dto, " ", " ")
+	if err != nil {
+		return "", errors.New("failed to marshal domain")
+	}
+
+	return string(xmlText), nil
 }

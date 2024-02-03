@@ -57,7 +57,7 @@ func (c *cloudInit) GetMetaDataYaml() (string, error) {
 		return "", errors.New("failed to marshal metaData")
 	}
 
-	return string(data[:]), nil
+	return string(data), nil
 }
 
 func (c *cloudInit) GetUserDataYaml() (string, error) {
@@ -79,6 +79,6 @@ func (c *cloudInit) GetUserDataYaml() (string, error) {
 		return "", errors.New("failed to marshal metaData")
 	}
 
-	result := "#cloud-config\n" + string(data[:])
+	result := "#cloud-config\n" + string(data)
 	return result, nil
 }

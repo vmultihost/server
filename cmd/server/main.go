@@ -35,6 +35,7 @@ func main() {
 	log := logrus.New()
 	// vmTest(log)
 	yamlTest(log)
+	domainXmlTest(log)
 
 	flag.Parse()
 
@@ -61,6 +62,25 @@ func main() {
 	// 	fmt.Printf("Error: %v", err)
 	// }
 	// fmt.Printf("%s\n", string(xmlText))
+}
+
+func domainXmlTest(log *logrus.Logger) {
+	xml, err := vmachine.CreateDomainCfg(
+		"server_name",
+		2000,
+		2,
+		"/var/lib/libvirt/images/vol1",
+		"http://10.0.1.1:8000",
+		"000001",
+		"network1",
+	)
+
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
+
+	fmt.Println(xml)
 }
 
 func yamlTest(log *logrus.Logger) {
