@@ -1,7 +1,7 @@
 package hypervisor
 
 import (
-	"fmt"
+	"errors"
 	"io"
 	"os"
 
@@ -9,12 +9,11 @@ import (
 	"github.com/digitalocean/go-libvirt/socket/dialers"
 	"github.com/sirupsen/logrus"
 	"github.com/vmultihost/server/internal/hypervisor/xml_temp"
+	"github.com/vmultihost/server/internal/vmachine"
 )
 
 const (
-	XML_VOL_PATH  = ""
-	XML_POOL_PATH = ""
-	POOL_NAME     = "pool1"
+	POOL_NAME = "pool1"
 )
 
 type Hypervisor struct {
@@ -35,6 +34,8 @@ func New(config Config, log *logrus.Logger) *Hypervisor {
 		log:    log,
 	}
 }
+
+// todo: get all vm, network, etc.
 func (h *Hypervisor) Connect() error {
 	if err := h.virt.Connect(); err != nil {
 		return err
@@ -54,9 +55,10 @@ func (h *Hypervisor) Disconnect() error {
 }
 
 // todo: make async
+// todo: check nil pool, vol, etc.
 func (h *Hypervisor) CopyImg(src string, volumeSizeKB uint64) error {
 	if !h.virt.IsConnected() {
-		return fmt.Errorf("not connected to hypervisor")
+		return errors.New("not connected to hypervisor")
 	}
 
 	var err error
@@ -85,6 +87,21 @@ func (h *Hypervisor) CopyImg(src string, volumeSizeKB uint64) error {
 		return err
 	}
 	h.log.Info("volume is resized")
+
+	return nil
+}
+
+func (h *Hypervisor) CreateVm(cfg *vmachine.VmConfig) error {
+	if !h.virt.IsConnected() {
+		return errors.New("not connected to hypervisor")
+	}
+
+	_ = vmachine.New(h.log)
+
+	// err := vm.Create(cfg, vmId, h.virt)
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }

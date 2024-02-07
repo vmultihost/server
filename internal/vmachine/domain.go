@@ -3,32 +3,33 @@ package vmachine
 import (
 	"encoding/xml"
 	"errors"
-	"fmt"
 	"strconv"
+
+	"github.com/vmultihost/server/internal/cloudinit"
 )
 
-type Domain struct {
+type domain struct {
 	XMLName xml.Name `xml:"domain"`
 	Type    string   `xml:"type,attr"`
 	Name    string   `xml:"name"`
-	Memory  Memory   `xml:"memory"`
-	Vcpu    Vcpu     `xml:"vcpu"`
-	Os      Os       `xml:"os"`
-	Sysinfo Sysinfo  `xml:"sysinfo"`
-	Devices Devices  `xml:"devices"`
+	Memory  memory   `xml:"memory"`
+	Vcpu    vcpu     `xml:"vcpu"`
+	Os      osXml    `xml:"os"`
+	Sysinfo sysinfo  `xml:"sysinfo"`
+	Devices devices  `xml:"devices"`
 }
 
-type Memory struct {
+type memory struct {
 	Text string `xml:",chardata"`
 	Unit string `xml:"unit,attr"`
 }
 
-type Vcpu struct {
+type vcpu struct {
 	Text      string `xml:",chardata"`
 	Placement string `xml:"placement,attr"`
 }
 
-type Os struct {
+type osXml struct {
 	Type   string `xml:"type"`
 	Smbios smbios `xml:"smbios"`
 }
@@ -37,61 +38,61 @@ type smbios struct {
 	Mode string `xml:"mode,attr"`
 }
 
-type Sysinfo struct {
+type sysinfo struct {
 	Type    string  `xml:"type,attr"`
-	System  System  `xml:"system"`
-	Chassis Chassis `xml:"chassis"`
+	System  system  `xml:"system"`
+	Chassis chassis `xml:"chassis"`
 }
 
-type System struct {
-	Entry Entry `xml:"entry"`
+type system struct {
+	Entry entry `xml:"entry"`
 }
 
-type Entry struct {
+type entry struct {
 	Text string `xml:",chardata"`
 	Name string `xml:"name,attr"`
 }
 
-type Chassis struct {
-	Entry Entry `xml:"entry"`
+type chassis struct {
+	Entry entry `xml:"entry"`
 }
 
-type Devices struct {
-	Disk      Disk      `xml:"disk"`
-	Interface Interface `xml:"interface"`
+type devices struct {
+	Disk      disk         `xml:"disk"`
+	Interface interfaceXml `xml:"interface"`
 }
 
-type Disk struct {
+type disk struct {
 	Type   string `xml:"type,attr"`
 	Device string `xml:"device,attr"`
-	Driver Driver `xml:"driver"`
-	Source Source `xml:"source"`
-	Target Target `xml:"target"`
+	Driver driver `xml:"driver"`
+	Source source `xml:"source"`
+	Target target `xml:"target"`
 }
 
-type Driver struct {
+type driver struct {
 	Name  string `xml:"name,attr"`
 	Type  string `xml:"type,attr"`
 	Cache string `xml:"cache,attr"`
 	Io    string `xml:"io,attr"`
 }
 
-type Source struct {
+type source struct {
 	File string `xml:"file,attr"`
 }
 
-type SourceNet struct {
+type sourceNet struct {
 	Network string `xml:"network,attr"`
 }
 
-type Target struct {
+type target struct {
 	Dev string `xml:"dev,attr"`
 	Bus string `xml:"bus,attr"`
 }
 
-type Interface struct {
+type interfaceXml struct {
 	Type   string    `xml:"type,attr"`
-	Source SourceNet `xml:"source"`
+	Source sourceNet `xml:"source"`
 }
 
 func CreateDomainCfg(
@@ -99,65 +100,62 @@ func CreateDomainCfg(
 	memoryMiB uint64,
 	cpu uint64,
 	imgPath string,
-	cloudInitUrl string,
-	cloudInitId string,
 	network string,
+	cloudInitConfig cloudinit.HttpConfig,
 ) (string, error) {
-	cloudInitPath := fmt.Sprintf("ds=nocloud;s=%s/__dmi.chassis-serial-number__/", cloudInitUrl)
-
-	dto := &Domain{
+	dto := &domain{
 		Name: name,
 		Type: "kvm",
-		Memory: Memory{
+		Memory: memory{
 			Unit: "MiB",
 			Text: strconv.FormatUint(memoryMiB, 10),
 		},
-		Vcpu: Vcpu{
+		Vcpu: vcpu{
 			Placement: "static",
 			Text:      strconv.FormatUint(cpu, 10),
 		},
-		Os: Os{
+		Os: osXml{
 			Type: "hvm",
 			Smbios: smbios{
 				Mode: "sysinfo",
 			},
 		},
-		Sysinfo: Sysinfo{
+		Sysinfo: sysinfo{
 			Type: "smbios",
-			System: System{
-				Entry: Entry{
+			System: system{
+				Entry: entry{
 					Name: "serial",
-					Text: cloudInitPath,
+					Text: cloudInitConfig.DataSource(),
 				},
 			},
-			Chassis: Chassis{
-				Entry: Entry{
+			Chassis: chassis{
+				Entry: entry{
 					Name: "serial",
-					Text: cloudInitId,
+					Text: cloudInitConfig.InstanceId(),
 				},
 			},
 		},
-		Devices: Devices{
-			Disk: Disk{
+		Devices: devices{
+			Disk: disk{
 				Type:   "file",
 				Device: "disk",
-				Driver: Driver{
+				Driver: driver{
 					Type:  "qcow2",
 					Name:  "qemu",
 					Cache: "none",
 					Io:    "native",
 				},
-				Source: Source{
+				Source: source{
 					File: imgPath,
 				},
-				Target: Target{
+				Target: target{
 					Dev: "vda",
 					Bus: "virtio",
 				},
 			},
-			Interface: Interface{
+			Interface: interfaceXml{
 				Type: "network",
-				Source: SourceNet{
+				Source: sourceNet{
 					Network: network,
 				},
 			},

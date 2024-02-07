@@ -1,9 +1,8 @@
-package vmachine
+package cloudinit
 
 import (
 	"errors"
 
-	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
@@ -35,9 +34,15 @@ type userDto struct {
 	Shell             string   `yaml:"shell,omitempty"`
 }
 
-func NewCloudInit(hostName, userName, password string, sshAuthKeys []string, log *logrus.Logger) *cloudInit {
+func NewCloudInit(
+	config *HttpConfig,
+	hostName, userName,
+	password string,
+	sshAuthKeys []string,
+	log *logrus.Logger,
+) *cloudInit {
 	return &cloudInit{
-		instanceId:  uuid.New().String(),
+		instanceId:  config.InstanceId(),
 		hostName:    hostName,
 		userName:    userName,
 		password:    password,

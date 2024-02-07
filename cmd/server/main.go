@@ -7,8 +7,10 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 
+	"github.com/vmultihost/server/internal/cloudinit"
 	"github.com/vmultihost/server/internal/httpserver"
 	"github.com/vmultihost/server/internal/hypervisor"
 	"github.com/vmultihost/server/internal/vmachine"
@@ -21,6 +23,7 @@ var (
 const (
 	socketName    = "/var/run/libvirt/libvirt-sock"
 	socketTimeout = 15 * time.Second
+	imgPath       = "/var/lib/libvirt/images/vol1"
 	imgSource     = "/home/kostuyn/Downloads/ubuntu-22.04-server-cloudimg-amd64.img"
 	volumeSizeKB  = 10 * 1024 * 1024 * 1024
 )
@@ -34,8 +37,9 @@ func main() {
 
 	log := logrus.New()
 	// vmTest(log)
-	yamlTest(log)
-	domainXmlTest(log)
+	cfg := cloudinit.NewHttpConfig(uuid.NewString(), "localhost", 12345)
+	yamlTest(cfg, log)
+	domainXmlTest(cfg, log)
 
 	flag.Parse()
 
@@ -64,15 +68,14 @@ func main() {
 	// fmt.Printf("%s\n", string(xmlText))
 }
 
-func domainXmlTest(log *logrus.Logger) {
+func domainXmlTest(config *cloudinit.HttpConfig, log *logrus.Logger) {
 	xml, err := vmachine.CreateDomainCfg(
 		"server_name",
 		2000,
 		2,
 		"/var/lib/libvirt/images/vol1",
-		"http://10.0.1.1:8000",
-		"000001",
 		"network1",
+		*config,
 	)
 
 	if err != nil {
@@ -83,8 +86,9 @@ func domainXmlTest(log *logrus.Logger) {
 	fmt.Println(xml)
 }
 
-func yamlTest(log *logrus.Logger) {
-	cloudInit := vmachine.NewCloudInit(
+func yamlTest(config *cloudinit.HttpConfig, log *logrus.Logger) {
+	cloudInit := cloudinit.NewCloudInit(
+		config,
 		"server1",
 		"vmuser",
 		"p@ssword",
@@ -109,7 +113,7 @@ func yamlTest(log *logrus.Logger) {
 }
 
 func vmTest(log *logrus.Logger) {
-	hypervisorConfig := hypervisor.NewConfig(socketName, socketTimeout)
+	hypervisorConfig := hypervisor.NewConfig(socketName, socketTimeout, imgPath)
 	hypervisor := hypervisor.New(*hypervisorConfig, log)
 
 	if err := hypervisor.Connect(); err != nil {
