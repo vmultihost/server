@@ -23,7 +23,7 @@ var (
 const (
 	socketName    = "/var/run/libvirt/libvirt-sock"
 	socketTimeout = 15 * time.Second
-	imgPath       = "/var/lib/libvirt/images/vol1"
+	imgPath       = "/var/lib/libvirt/images"
 	imgSource     = "/home/kostuyn/Downloads/ubuntu-22.04-server-cloudimg-amd64.img"
 	volumeSizeKB  = 10 * 1024 * 1024 * 1024
 )
@@ -36,9 +36,9 @@ func main() {
 	fmt.Println("Hello from server!")
 
 	log := logrus.New()
-	// vmTest(log)
-	cfg := cloudinit.NewHttpConfig(uuid.NewString(), "localhost", 12345)
-	yamlTest(cfg, log)
+	vmTest(log)
+	cfg := cloudinit.NewHttpConfig(uuid.NewString(), "localhost", 8080)
+	// yamlTest(cfg, log)
 	domainXmlTest(cfg, log)
 
 	flag.Parse()
@@ -70,12 +70,13 @@ func main() {
 
 func domainXmlTest(config *cloudinit.HttpConfig, log *logrus.Logger) {
 	xml, err := vmachine.CreateDomainCfg(
+		"instanceId",
+		"data_source",
 		"server_name",
 		2000,
 		2,
 		"/var/lib/libvirt/images/vol1",
 		"network1",
-		*config,
 	)
 
 	if err != nil {
@@ -88,7 +89,7 @@ func domainXmlTest(config *cloudinit.HttpConfig, log *logrus.Logger) {
 
 func yamlTest(config *cloudinit.HttpConfig, log *logrus.Logger) {
 	cloudInit := cloudinit.NewCloudInit(
-		config,
+		"instanceId",
 		"server1",
 		"vmuser",
 		"p@ssword",
@@ -114,22 +115,66 @@ func yamlTest(config *cloudinit.HttpConfig, log *logrus.Logger) {
 
 func vmTest(log *logrus.Logger) {
 	hypervisorConfig := hypervisor.NewConfig(socketName, socketTimeout, imgPath)
-	hypervisor := hypervisor.New(*hypervisorConfig, log)
+	hypervisor := hypervisor.New(hypervisorConfig, log)
 
-	if err := hypervisor.Connect(); err != nil {
-		log.Error(err)
-		os.Exit(1)
-	}
+	// if err := hypervisor.Connect(); err != nil {
+	// 	log.Error(err)
+	// 	os.Exit(1)
+	// }
 
-	if err := hypervisor.CopyImg(imgSource, volumeSizeKB); err != nil {
-		log.Error(err)
-		os.Exit(1)
-	}
+	// if err := hypervisor.CopyImg(imgSource, volumeSizeKB); err != nil {
+	// 	log.Error(err)
+	// 	os.Exit(1)
+	// }
 
-	if err := hypervisor.Disconnect(); err != nil {
-		log.Error(err)
-		os.Exit(1)
-	}
+	// if err := hypervisor.Disconnect(); err != nil {
+	// 	log.Error(err)
+	// 	os.Exit(1)
+	// }
+
+	cloudInitServer := cloudinit.NewServer(
+		"localhost",
+		8081,
+		log,
+	)
+
+	go func() {
+		if err := cloudInitServer.Start(); err != nil {
+			log.Error(err)
+			os.Exit(1)
+		}
+	}()
+
+	log.Info("create vm")
+	instanceId := "instanceId"
+
+	vm := vmachine.New(
+		cloudInitServer.DataSource(),
+		hypervisor.ImgPath(),
+		// todo: get from hypervisor
+		"network1",
+		log,
+	)
+
+	cloudInit := cloudinit.NewCloudInit(
+		instanceId,
+		"vm1",
+		"user",
+		"password",
+		[]string{"rsa list"},
+		log,
+	)
+
+	cloudInitServer.AddCloudInit(cloudInit)
+
+	vm.Create(
+		instanceId,
+		"vm1",
+		2000,
+		2,
+	)
+
+	// vm.Start()
 }
 
 var data = `

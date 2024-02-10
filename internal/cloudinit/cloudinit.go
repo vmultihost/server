@@ -1,3 +1,4 @@
+// creats cloud-init meta-data and user-data
 package cloudinit
 
 import (
@@ -7,7 +8,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type cloudInit struct {
+type CloudInit struct {
 	instanceId  string
 	hostName    string
 	userName    string
@@ -35,14 +36,14 @@ type userDto struct {
 }
 
 func NewCloudInit(
-	config *HttpConfig,
+	instanceId string,
 	hostName, userName,
 	password string,
 	sshAuthKeys []string,
 	log *logrus.Logger,
-) *cloudInit {
-	return &cloudInit{
-		instanceId:  config.InstanceId(),
+) *CloudInit {
+	return &CloudInit{
+		instanceId:  instanceId,
 		hostName:    hostName,
 		userName:    userName,
 		password:    password,
@@ -51,7 +52,7 @@ func NewCloudInit(
 	}
 }
 
-func (c *cloudInit) GetMetaDataYaml() (string, error) {
+func (c *CloudInit) GetMetaDataYaml() (string, error) {
 	metaData := &metaDataDto{
 		InstanceId:    c.instanceId,
 		LocalHostname: c.hostName,
@@ -65,7 +66,7 @@ func (c *cloudInit) GetMetaDataYaml() (string, error) {
 	return string(data), nil
 }
 
-func (c *cloudInit) GetUserDataYaml() (string, error) {
+func (c *CloudInit) GetUserDataYaml() (string, error) {
 	userData := &userDataDto{
 		Users: []userDto{
 			{

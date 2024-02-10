@@ -9,7 +9,6 @@ import (
 	"github.com/digitalocean/go-libvirt/socket/dialers"
 	"github.com/sirupsen/logrus"
 	"github.com/vmultihost/server/internal/hypervisor/xml_temp"
-	"github.com/vmultihost/server/internal/vmachine"
 )
 
 const (
@@ -17,12 +16,12 @@ const (
 )
 
 type Hypervisor struct {
-	config Config
+	config *Config
 	virt   *libvirt.Libvirt
 	log    *logrus.Logger
 }
 
-func New(config Config, log *logrus.Logger) *Hypervisor {
+func New(config *Config, log *logrus.Logger) *Hypervisor {
 	timeoutOption := dialers.WithLocalTimeout(config.socketTimeout)
 	socketOption := dialers.WithSocket(config.socketName)
 	dialer := dialers.NewLocal(timeoutOption, socketOption)
@@ -33,6 +32,10 @@ func New(config Config, log *logrus.Logger) *Hypervisor {
 		virt:   virt,
 		log:    log,
 	}
+}
+
+func (h *Hypervisor) ImgPath() string {
+	return h.config.imgPath
 }
 
 // todo: get all vm, network, etc.
@@ -91,17 +94,20 @@ func (h *Hypervisor) CopyImg(src string, volumeSizeKB uint64) error {
 	return nil
 }
 
-func (h *Hypervisor) CreateVm(cfg *vmachine.VmConfig) error {
-	if !h.virt.IsConnected() {
-		return errors.New("not connected to hypervisor")
-	}
+// func (h *Hypervisor) CreateVm(cfg *vmachine.VmConfig) error {
+// 	if !h.virt.IsConnected() {
+// 		return errors.New("not connected to hypervisor")
+// 	}
 
-	_ = vmachine.New(h.log)
+// 	instanceId := uuid.NewString()
+// 	h.cloudInit.AddInstance(instanceId)
 
-	// err := vm.Create(cfg, vmId, h.virt)
-	// if err != nil {
-	// 	return err
-	// }
+// 	_ = vmachine.New(h.log)
 
-	return nil
-}
+// 	// err := vm.Create(cfg, vmId, h.virt)
+// 	// if err != nil {
+// 	// 	return err
+// 	// }
+
+// 	return nil
+// }

@@ -1,3 +1,4 @@
+// config for cloud-init data source and http server
 package cloudinit
 
 import (
@@ -13,6 +14,7 @@ type HttpConfig struct {
 
 func NewHttpConfig(instanceId, host string, port uint16) *HttpConfig {
 	return &HttpConfig{
+		// todo: remove
 		instanceId: instanceId,
 		host:       host,
 		port:       port,

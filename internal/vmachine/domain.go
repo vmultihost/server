@@ -4,8 +4,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"strconv"
-
-	"github.com/vmultihost/server/internal/cloudinit"
 )
 
 type domain struct {
@@ -96,12 +94,13 @@ type interfaceXml struct {
 }
 
 func CreateDomainCfg(
+	instanceId string,
+	dataSource string,
 	name string,
 	memoryMiB uint64,
 	cpu uint64,
 	imgPath string,
 	network string,
-	cloudInitConfig cloudinit.HttpConfig,
 ) (string, error) {
 	dto := &domain{
 		Name: name,
@@ -125,13 +124,13 @@ func CreateDomainCfg(
 			System: system{
 				Entry: entry{
 					Name: "serial",
-					Text: cloudInitConfig.DataSource(),
+					Text: dataSource,
 				},
 			},
 			Chassis: chassis{
 				Entry: entry{
 					Name: "serial",
-					Text: cloudInitConfig.InstanceId(),
+					Text: instanceId,
 				},
 			},
 		},
