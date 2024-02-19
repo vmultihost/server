@@ -1,64 +1,41 @@
 package vmachine
 
 import (
+	"github.com/digitalocean/go-libvirt"
 	"github.com/sirupsen/logrus"
-	"github.com/vmultihost/server/internal/cloudinit"
 )
 
 type Vmachine struct {
-	dataSource string
-	imgPath    string
-	network    string
-	log        *logrus.Logger
-}
-
-type VmConfig struct {
-	name         string
-	memoryMiB    uint64
-	cpu          uint64
-	cloudInitUrl string
-	cloudInitId  string
-	network      string
+	domain *domain
+	virt   *libvirt.Libvirt
+	log    *logrus.Logger
 }
 
 func New(
-	dataSource string,
-	imgPath string,
-	network string,
+	domain *domain,
+	virt *libvirt.Libvirt,
 	log *logrus.Logger,
 ) *Vmachine {
 	return &Vmachine{
-		dataSource: dataSource,
-		imgPath:    imgPath,
-		network:    network,
-		log:        log,
+		domain: domain,
+		virt:   virt,
+		log:    log,
 	}
 }
 
-func (v *Vmachine) Create(
-	instanceId string,
-	name string,
-	memoryMiB uint64,
-	cpu uint64,
-) error {
-	domain, err := CreateDomainCfg(
-		instanceId,
-		v.dataSource,
-		name,
-		memoryMiB,
-		cpu,
-		v.imgPath,
-		v.network,
-	)
+func (v *Vmachine) Create() error {
+	domainXml, err := v.domain.ToXml()
+
 	if err != nil {
 		return err
 	}
 
-	v.log.Info(domain)
+	// todo: create vm using libvirt
+	v.log.Info(domainXml)
 	return nil
 }
 
-func (v *Vmachine) Configure(cloudInit *cloudinit.CloudInit) error {
-
+func (v *Vmachine) Start() error {
+	v.log.Info("")
 	return nil
 }

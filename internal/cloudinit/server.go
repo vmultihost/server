@@ -1,71 +1,42 @@
 package cloudinit
 
 import (
-	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
+	"github.com/vmultihost/server/internal/httpserver"
 )
 
 type Server struct {
-	host   string
-	port   uint64
-	router *mux.Router
-	store  map[string]*CloudInit
-	log    *logrus.Logger
+	httpserver.HttpServer
+	cloudInit *CloudInit
 }
 
-func NewServer(host string, port uint64, log *logrus.Logger) *Server {
+func NewServer(config *httpserver.Config, cloudInit *CloudInit) *Server {
+	server := *httpserver.New(config)
 	return &Server{
-		host:   host,
-		port:   port,
-		router: mux.NewRouter(),
-		store:  map[string]*CloudInit{},
-		log:    log,
+		HttpServer: server,
+		cloudInit:  cloudInit,
 	}
 }
 
-func (s *Server) DataSource() string {
-	host := fmt.Sprintf("%s:%d", s.host, s.port)
-	u := url.URL{
-		Scheme: "http",
-		Host:   host,
-		Path:   "/__dmi.chassis-serial-number__/",
-	}
-
-	return fmt.Sprintf("ds=nocloud;s=%s", u.String())
-}
-
-func (s *Server) AddCloudInit(cloudInit *CloudInit) {
-	s.store[cloudInit.instanceId] = cloudInit
-}
-
-// todo: use gin
 func (s *Server) Start() error {
-	address := fmt.Sprintf("%s:%d", s.host, s.port)
-	s.router.Handle("/{instanceId}/user-data", s.userDataHandler()).Methods("GET")
-	s.router.Handle("/{instanceId}/meta-data", s.metaDataHandler()).Methods("GET")
+	s.HandleGet("/{instanceId}/user-data", s.userDataHandler)
+	s.HandleGet("/{instanceId}/meta-data", s.metaDataHandler)
 
-	return http.ListenAndServe(address, s.router)
+	return s.HttpServer.Start()
 }
 
-func (s *Server) userDataHandler() http.HandlerFunc {
+func (s *Server) metaDataHandler(log *logrus.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		instanceId := vars["instanceId"]
-		cloudInit, ok := s.store[instanceId]
-		if !ok {
-			// todo: json error
-			http.Error(w, "user-data not found", http.StatusNotFound)
-			return
-		}
 
-		data, err := cloudInit.GetUserDataYaml()
+		data, err := s.cloudInit.GetMetaDataYaml(instanceId)
 		if err != nil {
-			s.log.Error(err)
+			log.Error("failed to get meta-data")
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
@@ -74,20 +45,14 @@ func (s *Server) userDataHandler() http.HandlerFunc {
 	}
 }
 
-func (s *Server) metaDataHandler() http.HandlerFunc {
+func (s *Server) userDataHandler(log *logrus.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		instanceId := vars["instanceId"]
-		cloudInit, ok := s.store[instanceId]
-		if !ok {
-			// todo: json error
-			http.Error(w, "meta-data not found", http.StatusNotFound)
-			return
-		}
 
-		data, err := cloudInit.GetMetaDataYaml()
+		data, err := s.cloudInit.GetUserDataYaml(instanceId)
 		if err != nil {
-			s.log.Error(err)
+			log.Error("failed to get user-data")
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}

@@ -93,17 +93,17 @@ type interfaceXml struct {
 	Source sourceNet `xml:"source"`
 }
 
-func CreateDomainCfg(
+func NewDomain(
 	instanceId string,
-	dataSource string,
-	name string,
-	memoryMiB uint64,
+	dataSource *DataSource,
+	hostName string,
 	cpu uint64,
+	memoryMiB uint64,
 	imgPath string,
 	network string,
-) (string, error) {
-	dto := &domain{
-		Name: name,
+) *domain {
+	return &domain{
+		Name: hostName,
 		Type: "kvm",
 		Memory: memory{
 			Unit: "MiB",
@@ -124,7 +124,7 @@ func CreateDomainCfg(
 			System: system{
 				Entry: entry{
 					Name: "serial",
-					Text: dataSource,
+					Text: dataSource.String(),
 				},
 			},
 			Chassis: chassis{
@@ -160,8 +160,10 @@ func CreateDomainCfg(
 			},
 		},
 	}
+}
 
-	xmlText, err := xml.MarshalIndent(dto, " ", " ")
+func (d *domain) ToXml() (string, error) {
+	xmlText, err := xml.MarshalIndent(d, " ", " ")
 	if err != nil {
 		return "", errors.New("failed to marshal domain")
 	}
